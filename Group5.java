@@ -107,6 +107,7 @@ public class Group5 { // Replace Group1 with your actual assigned group number (
             for (String s : data) {
                 writer.println(s);
             }
+            writer.flush();
             writer.close();
         } catch (IOException e) {
             e.printStackTrace();
