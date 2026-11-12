@@ -1,116 +1,151 @@
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.PrintWriter;
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Scanner;
 
-public class Group5 { // Replace Group1 with your actual assigned group number (e.g., Group2, Group3)
+// To run on a single core, compile and then run as:
+// taskset -c 0 java GroupN
+// To avoid file reading/writing connections to the server, run in /tmp 
+// of your lab machine.
 
-    static class BinaryData implements Comparable<BinaryData> {
-        String original;
-        long value;
-        int onesCount;
-        int length;
+public class Group5 {
 
-        public BinaryData(String s) {
-            this.original = s;
-            this.length = s.length();
-            this.onesCount = 0;
-            long val = 0;
+	public static void main(String[] args) throws InterruptedException, FileNotFoundException {
 
-            for (int i = 0; i < length; i++) {
-                char c = s.charAt(length - 1 - i);
-                if (c == '1') {
-                    onesCount++;
-                    val += 2L * i + 1; // Fixed: using addition for the sum of odd integers
-                }
-            }
-            this.value = val;
-        }
-    
-        @Override
-        public int compareTo(BinaryData other) {
-            if (this.value != other.value) {
-                return Long.compare(this.value, other.value);
-            }
-            if (this.onesCount != other.onesCount) {
-                return Integer.compare(this.onesCount, other.onesCount);
-            }
-            if (this.length != other.length) {
-                return Integer.compare(this.length, other.length);
-            }
-            return this.original.compareTo(other.original);
-        }
-    }
+		if (args.length < 2) {
+			System.out.println(
+					"Running tests since input and output file names not specified");
+			SortingCompetitionComparator.runComparatorTests();
+			System.exit(0);
+		}
 
-    public static String[] sort(String[] data) {
-        BinaryData[] wrapped = new BinaryData[data.length];
-        for (int i = 0; i < data.length; i++) {
-            wrapped[i] = new BinaryData(data[i]);
-        }
-        Arrays.sort(wrapped);
+		String inputFileName = args[0];
+		String outFileName   = args[1];
+		
+		// Uncomment to test comparator methods
 
-        String[] result = new String[data.length];
-        for (int i = 0; i < data.length; i++) {
-            result[i] = wrapped[i].original;
-        }
-        return result;
-    }
+		String [] data = readData(inputFileName); // read data as strings
+		
+		String [] toSort = data.clone(); // clone the data
 
-    // --- Standard template boilerplate below to handle I/O, warmup, and timing ---
-    public static void main(String[] args) {
-        String inputFilename = "SmallData.txt"; // Change to prelim1.txt or your test file
-        if (args.length > 0) {
-            inputFilename = args[0];
-        }
+		sort(toSort); // call the sorting method once for JVM warmup
+		
+		toSort = data.clone(); // clone again
 
-        // Read data
-        String[] data = readData(inputFilename);
-        String[] dataWarmup = Arrays.copyOf(data, data.length);
+		Thread.sleep(10); // to let other things finish before timing; adds stability of runs
 
-        // JVM Warmup
-        sort(dataWarmup);
+		long start = System.currentTimeMillis();
 
-        // Pause for GC / I/O settling
-        try {
-            Thread.sleep(10);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+		sort(toSort); // sort again
 
-        // Timed run
-        long startTime = System.currentTimeMillis();
-        String[] sortedData = sort(data);
-        long endTime = System.currentTimeMillis();
+		long end = System.currentTimeMillis();
 
-        // Print ONLY the time in milliseconds (competition requirement)
-        System.out.println(endTime - startTime);
+		System.out.println(end - start);
 
-        // Optional: write output to verify correctness during testing
-        writeOutput("output.txt", sortedData);
-    }
+		writeOutResult(toSort, outFileName); // write out the results
 
-    public static String[] readData(String filename) {
-        try {
-            BufferedReader reader = new BufferedReader(new FileReader(filename));
-            return reader.lines().toArray(String[]::new);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return new String[0];
-        }
-    }
+	}
 
-    public static void writeOutput(String filename, String[] data) {
-        try {
-            PrintWriter writer = new PrintWriter(new FileWriter(filename));
-            for (String s : data) {
-                writer.println(s);
-            }
-            writer.flush();
-            writer.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+
+	private static String [] readData(String inputFileName) throws FileNotFoundException {
+		ArrayList<String> input = new ArrayList<>();
+		Scanner in = new Scanner(new File(inputFileName));
+
+		while (in.hasNext()) {
+			input.add(in.next());
+		}
+
+		in.close();
+
+		// the string array is passed just so that the correct type can be created
+		return input.toArray(new String [0]);
+	}
+
+	// YOUR SORTING METHOD GOES HERE.
+	// You may call other methods and use other classes.
+	// Note: you may change the return type of the method.
+	// You would need to provide your own function that prints your sorted array to
+	// a file in the exact same format that my program outputs
+	private static void sort(String [] toSort) {
+		Arrays.sort(toSort, new SortingCompetitionComparator());
+	}
+
+	private static class SortingCompetitionComparator implements Comparator<String> {
+		private static int toVal(String seq){
+			int result = 0;
+			int n = seq.length();
+			int j = 1;
+			for(int i = n-1; i>=0; i--){
+				if(seq.charAt(i)=='1'){
+					result += 2*j-1;
+				}
+				j++;				
+			}
+
+			return result;
+		}
+		private static int countOnes(String seq){
+			int count = 0;
+			int n = seq.length();
+			for(int i = n-1; i>=0; i--){
+				if(seq.charAt(i)=='1'){
+					count++;
+				}			
+			}
+
+			return count;
+		}
+
+		@Override
+		public int compare(String seq1, String seq2) {
+			int val1 = toVal(seq1);
+			int val2 = toVal(seq2);
+			int count1 = countOnes(seq1);
+			int count2 = countOnes(seq2);
+
+			if(val1 != val2){
+				return val1 - val2; // Values are different
+			} 
+			
+			if(count1 != count2){
+				return count1 - count2; // # of ones are different
+			} 
+
+			if(seq1.length() != seq2.length()){
+				return seq1.length() - seq2.length(); // Strings are different lengths
+			}
+
+			return seq1.compareTo(seq2);
+		}
+
+		public static void runComparatorTests() {
+			String str24a = "101101";
+			String str24b = "110011";
+			String str24c = "10010000"; 
+			String str24d = "1100000"; 
+			String str25  = "11111";
+			System.out.println(toVal(str24a)); // Should get 1 + 5 + 7 + 11   = 24
+			System.out.println(toVal(str24b)); // Should get 1 + 3 + 9 + 11   = 24			 		
+			System.out.println(toVal(str24c)); // Should get 9 + 15             = 24			 		
+			System.out.println(toVal(str24d)); // Should get 13 + 11          = 24			 		
+			System.out.println(toVal(str25)); // Should get 1 + 3 + 5 + 7 + 9 = 25
+
+			System.out.println("Comparing arr1 and arr2");
+			System.out.println((new SortingCompetitionComparator()).compare(str24a, str25)); //Neg	
+			System.out.println((new SortingCompetitionComparator()).compare(str24a, str24c)); //Pos
+			System.out.println((new SortingCompetitionComparator()).compare(str24a, str24b)); //Neg
+			System.out.println((new SortingCompetitionComparator()).compare(str24c, str24d)); //Pos
+		}		
+	}
+	
+	private static void writeOutResult(String [] sorted, String outputFilename) throws FileNotFoundException {
+		PrintWriter out = new PrintWriter(outputFilename);
+		for (String s : sorted) {			
+			out.println(s);
+		}
+		out.close();
+	}		
 }
