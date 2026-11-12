@@ -5,7 +5,7 @@ import java.io.PrintWriter;
 import java.io.IOException;
 import java.util.Arrays;
 
-public class Group1 { // Replace Group1 with your actual assigned group number (e.g., Group2, Group3)
+public class Group5 { // Replace Group1 with your actual assigned group number (e.g., Group2, Group3)
 
     static class BinaryData implements Comparable<BinaryData> {
         String original;
